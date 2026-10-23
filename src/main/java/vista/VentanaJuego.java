@@ -11,8 +11,6 @@ import java.awt.event.ActionListener;
 //para imagenes *recordar para aprendizaje*
 import java.io.InputStream;
 import javax.imageio.ImageIO;
-import java.io.IOException;
-
 
 public class VentanaJuego extends JFrame {
     private ControladorJuego controlador;
@@ -21,34 +19,74 @@ public class VentanaJuego extends JFrame {
     private JLabel labelMultiplicador;
     private JLabel labelSaldo;
     private JButton botonAccion;
-    private Timer temporizador;
+    private javax.swing.Timer temporizador;
 
     private Image imagenFondo;
-
     public VentanaJuego(Jugador jugador, ControladorJuego controlador) {
         this.jugador = jugador;
         this.controlador = controlador;
 
+        cargarFondo();
+
         setTitle("AstroFly - MVP");
-        setSize(400, 300);
+        setSize(800, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(3, 1));
         setLocationRelativeTo(null);
 
+        JPanel panelFondo = new JPanel(new GridLayout(4, 1)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (imagenFondo != null) {
+                    // Dibuja la imagen estirada al tamaño de la ventana
+                    g.drawImage(imagenFondo, 0, 0, getWidth(), getHeight(), this);
+                }
+            }
+        };
+        setContentPane(panelFondo);
+
         inicializarComponentes();
         configurarTemporizador();
     }
-
+    private void cargarFondo() {
+        try {
+            InputStream is = getClass().getResourceAsStream("/fondo.png");
+            if (is != null) {
+                imagenFondo = ImageIO.read(is);
+            } else {
+                System.out.println("No se encontró la imagen fondo.png");
+            }
+        } catch (Exception e) {
+            System.out.println("Error al cargar la imagen: " + e.getMessage());
+        }
+    }
     private void inicializarComponentes() {
-        labelSaldo = new JLabel("Saldo: $" + jugador.getSaldo(), SwingConstants.CENTER);
-        labelSaldo.setFont(new Font("Arial", Font.BOLD, 16));
+        //paneles
+        JPanel panel1 = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 10));
+        panel1.setOpaque(false);
+        labelSaldo = new JLabel("Saldo: $" + String.format("%.2f",jugador.getSaldo()));
+        labelSaldo.setForeground(Color.WHITE);
+        labelSaldo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 32));
+        panel1.add(labelSaldo);
+        add(panel1);
 
-        labelMultiplicador = new JLabel("1.00x", SwingConstants.CENTER);
-        labelMultiplicador.setFont(new Font("Arial", Font.BOLD, 48));
+        JPanel panel2 = new JPanel();
+        panel2.setOpaque(false);
+        labelMultiplicador = new JLabel("1.00x");
         labelMultiplicador.setForeground(Color.GREEN);
+        labelMultiplicador.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 50));
+        panel2.add(labelMultiplicador);
+        add(panel2);
 
-        botonAccion = new JButton("APOSTAR $20 E INICIAR");
-        botonAccion.setFont(new Font("Arial", Font.BOLD, 18));
+        JPanel panel3 = new JPanel();
+        panel3.setOpaque(false);
+        add(panel3);
+
+        JPanel panel4 = new JPanel();
+        panel4.setOpaque(false);
+        botonAccion = new JButton("APOSTAR $200 E INICIAR");
+
 
         botonAccion.addActionListener(new ActionListener() {
             @Override
@@ -56,15 +94,11 @@ public class VentanaJuego extends JFrame {
                 manejarClicBoton();
             }
         });
-
-        add(labelSaldo);
-        add(labelMultiplicador);
-        add(botonAccion);
+        panel4.add(botonAccion);
+        add(panel4);
     }
-
     private void configurarTemporizador() {
-        // Ejecuta la actualización 20 veces por segundo
-        temporizador = new Timer(50, new ActionListener() {
+        temporizador = new javax.swing.Timer(70, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (controlador.getEstado() == ControladorJuego.EstadoJuego.VUELO) {
@@ -80,10 +114,9 @@ public class VentanaJuego extends JFrame {
             }
         });
     }
-
     private void manejarClicBoton() {
         if (controlador.getEstado() == ControladorJuego.EstadoJuego.ESPERA) {
-            if (controlador.iniciarRonda(20.0)) {            // Apuesta fija temporal
+            if (controlador.iniciarRonda(200.0)) {            // Apuesta fija temporal
                 botonAccion.setText("¡RETIRAR GANANCIA!");
                 labelSaldo.setText("Saldo: $" + jugador.getSaldo());
                 temporizador.start();                        // Inicia la animación
@@ -101,7 +134,7 @@ public class VentanaJuego extends JFrame {
         else if (controlador.getEstado() == ControladorJuego.EstadoJuego.CHOQUE) {
             labelMultiplicador.setText("1.00x");
             labelMultiplicador.setForeground(Color.GREEN);
-            botonAccion.setText("APOSTAR $20 E INICIAR");
+            botonAccion.setText("APOSTAR $200 E INICIAR");
             controlador = new ControladorJuego(jugador);     // Resetea para la siguiente ronda
         }
     }

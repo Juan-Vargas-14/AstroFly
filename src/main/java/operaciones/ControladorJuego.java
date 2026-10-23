@@ -1,5 +1,6 @@
 package operaciones;
 
+
 import datos.Apuesta;
 import datos.Jugador;
 public class ControladorJuego {
@@ -30,7 +31,7 @@ public class ControladorJuego {
     public void procesarTickTimer(){
         if(estado !=EstadoJuego.VUELO)return;
 
-        multiplicadorEnPantalla+=0.05; //Aumenta el multiplicador
+        multiplicadorEnPantalla+=0.02; //Aumenta el multiplicador
 
         if(multiplicadorEnPantalla>=puntoChoqueOculto){
             multiplicadorEnPantalla=puntoChoqueOculto;
