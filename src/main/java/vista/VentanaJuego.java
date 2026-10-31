@@ -35,8 +35,8 @@ public class VentanaJuego extends JFrame {
 
         cargarFondo();
 
-        setTitle("AstroFly - MVP");
-        setSize(800, 500);
+        setTitle("AstroFly");
+        setSize(800, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(3, 1));
         setLocationRelativeTo(null);
@@ -79,40 +79,60 @@ public class VentanaJuego extends JFrame {
     }
 
     private void inicializarComponentes() {
-        //paneles
-        JPanel panel1 = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 10));
+        // Configuramos el layout principal de la ventana
+        setLayout(new java.awt.BorderLayout());
+
+        // --- PANEL NORTE: Saldo y Cerrar Sesión ---
+        JPanel panel1 = new JPanel(new java.awt.BorderLayout());
         panel1.setOpaque(false);
+        panel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 15, 10, 15));
+
         labelSaldo = new JLabel("Saldo: $" + String.format("%.2f", jugador.getSaldo()));
-        labelSaldo.setForeground(Color.WHITE);
+        labelSaldo.setForeground(java.awt.Color.WHITE);
         labelSaldo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 32));
-        panel1.add(labelSaldo);
-        add(panel1);
+        panel1.add(labelSaldo, java.awt.BorderLayout.WEST);
 
-        JPanel panel2 = new JPanel();
-        panel2.setOpaque(false);
+        JButton btnCerrarSesion = new JButton("Cerrar Sesión");
+        btnCerrarSesion.setFocusable(false); // Para evitar problemas con el foco
+        btnCerrarSesion.addActionListener(e -> cerrarSesion());
+        panel1.add(btnCerrarSesion, java.awt.BorderLayout.EAST);
+
+        add(panel1, java.awt.BorderLayout.NORTH); // Anclado arriba
+
+        // --- PANEL CENTRO: Agrupa Multiplicador y Animación ---
+        JPanel panelCentro = new JPanel(new java.awt.BorderLayout());
+        panelCentro.setOpaque(false);
+
+        // 1. Multiplicador (Anclado arriba dentro del centro, centrado horizontalmente)
         labelMultiplicador = new JLabel("1.00x");
-        labelMultiplicador.setForeground(Color.GREEN);
+        labelMultiplicador.setForeground(java.awt.Color.GREEN);
         labelMultiplicador.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 50));
-        panel2.add(labelMultiplicador);
-        add(panel2);
+        labelMultiplicador.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        // Margen para separar el texto del techo y darle aire antes del robot
+        labelMultiplicador.setBorder(javax.swing.BorderFactory.createEmptyBorder(50, 0, 20, 0));
 
-        JPanel panel3 = new JPanel(new java.awt.GridBagLayout());
-        panel3.setOpaque(false);
+        panelCentro.add(labelMultiplicador, java.awt.BorderLayout.NORTH);
 
-// 1. Inicializamos la etiqueta aquí, asegurándonos de que ya existe en memoria
+        // 2. Animación del Robot (Ocupa TODO el espacio sobrante en el centro)
         labelAnimacion = new JLabel();
-        labelAnimacion.setHorizontalAlignment(JLabel.CENTER);
-
-// 2. Opcional: le pones un GIF por defecto al arrancar la ventana
+        labelAnimacion.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        labelAnimacion.setVerticalAlignment(javax.swing.SwingConstants.CENTER); // Centrado vertical puro
         if (gifVuelo != null) {
             labelAnimacion.setIcon(gifVuelo);
         }
 
-        panel3.add(labelAnimacion);
-        add(panel3);
+        panelCentro.add(labelAnimacion, java.awt.BorderLayout.CENTER);
 
-        JPanel panel4 = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 10));
-        panel4.setOpaque(false);
+        add(panelCentro, java.awt.BorderLayout.CENTER); // Anclado al medio de la ventana
+
+        // --- PANEL SUR: Controles de Apuesta  y Ranking ---
+        JPanel panelSurPrincipal = new JPanel(new java.awt.BorderLayout());
+        panelSurPrincipal.setOpaque(false);
+        panelSurPrincipal.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 15, 30, 15));
+
+        // Sub-panel de Apuestas (Centrado)
+        JPanel panelApuesta = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 0));
+        panelApuesta.setOpaque(false);
 
         JLabel labelIndicador = new JLabel("Apuesta: $");
         labelIndicador.setForeground(java.awt.Color.WHITE);
@@ -130,14 +150,39 @@ public class VentanaJuego extends JFrame {
         botonAccion = new JButton("INICIAR");
         botonAccion.addActionListener(e -> manejarClicBoton());
 
-        panel4.add(labelIndicador);
-        panel4.add(campoApuesta);
-        panel4.add(btnMas10);
-        panel4.add(btnMas50);
-        panel4.add(botonAccion);
-        add(panel4);
+        panelApuesta.add(labelIndicador);
+        panelApuesta.add(campoApuesta);
+        panelApuesta.add(btnMas10);
+        panelApuesta.add(btnMas50);
+        panelApuesta.add(botonAccion);
 
+        panelSurPrincipal.add(panelApuesta, java.awt.BorderLayout.CENTER);
 
+        // Sub-panel Ranking (A la derecha)
+        JPanel panelRanking = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        panelRanking.setOpaque(false);
+
+        JButton btnRanking = new JButton("Ver Ranking");
+        btnRanking.setFocusable(false);
+        btnRanking.addActionListener(e -> new VentanaRanking().setVisible(true));
+
+        panelRanking.add(btnRanking);
+
+        panelSurPrincipal.add(panelRanking, java.awt.BorderLayout.EAST); // Anclado abajo a la derecha
+
+        add(panelSurPrincipal, java.awt.BorderLayout.SOUTH); // Agregado a la ventana principal
+    }
+    private void cerrarSesion(){
+        // Guarda el saldo actual en la base de datos por seguridad antes de salir
+        datos.dao.JugadorDAO dao = new datos.dao.JugadorDAOImpl();
+        dao.actualizarSaldo(jugador.getNombre(), jugador.getSaldo());
+
+        // Abre la ventana de login
+        VentanaInicioSesion login = new VentanaInicioSesion();
+        login.setVisible(true);
+
+        // Cierra la ventana del juego actual
+        this.dispose();
     }
 
     private void sumarApuesta(int monto) {

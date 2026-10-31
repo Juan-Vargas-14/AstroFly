@@ -29,7 +29,7 @@ public class ControladorJuego {
 
         datos.dao.JugadorDAO dao = new datos.dao.JugadorDAOImpl();
         //guardar progreso con saldo nuevo
-        dao.guardarJugador(new datos.dto.JugadorDTO(jugadorActual.getNombre(), jugadorActual.getSaldo()));
+        dao.actualizarSaldo(jugadorActual.getNombre(), jugadorActual.getSaldo());
 
         return true;
     }
@@ -52,7 +52,7 @@ public class ControladorJuego {
 
         datos.dao.JugadorDAO dao = new datos.dao.JugadorDAOImpl();
         //guardar progreso con saldo nuevo
-        dao.guardarJugador(new datos.dto.JugadorDTO(jugadorActual.getNombre(), jugadorActual.getSaldo()));
+        dao.actualizarSaldo(jugadorActual.getNombre(), jugadorActual.getSaldo());
     }
     public EstadoJuego getEstado(){return estado;}
     public double getMultiplicadorEnPantalla(){return multiplicadorEnPantalla;}
