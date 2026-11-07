@@ -87,12 +87,15 @@ public class VentanaJuego extends JFrame {
         panel1.setOpaque(false);
         panel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
-        labelSaldo = new JLabel("Saldo: $" + String.format("%.2f", jugador.getSaldo()));
+        labelSaldo = new JLabel(jugador.getNombre() + " | Saldo: $" + String.format("%.2f", jugador.getSaldo()));
         labelSaldo.setForeground(java.awt.Color.WHITE);
         labelSaldo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 32));
         panel1.add(labelSaldo, java.awt.BorderLayout.WEST);
 
         JButton btnCerrarSesion = new JButton("Cerrar Sesión");
+        btnCerrarSesion.setBackground(new java.awt.Color(255, 0, 0)); // Rojo de alerta
+        btnCerrarSesion.setForeground(java.awt.Color.WHITE);
+        btnCerrarSesion.setFocusPainted(false);
         btnCerrarSesion.setFocusable(false); // Para evitar problemas con el foco
         btnCerrarSesion.addActionListener(e -> cerrarSesion());
         panel1.add(btnCerrarSesion, java.awt.BorderLayout.EAST);
@@ -142,12 +145,21 @@ public class VentanaJuego extends JFrame {
         campoApuesta.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 16));
 
         JButton btnMas10 = new JButton("+10");
+        btnMas10.setBackground(new java.awt.Color(255, 255, 255));
+        btnMas10.setForeground(Color.BLACK);
+        btnMas10.setFocusPainted(false);
         btnMas10.addActionListener(e -> sumarApuesta(10));
 
         JButton btnMas50 = new JButton("+50");
+        btnMas50.setBackground(new java.awt.Color(255, 255, 255, 255));
+        btnMas50.setForeground(Color.BLACK);
+        btnMas50.setFocusPainted(false);
         btnMas50.addActionListener(e -> sumarApuesta(50));
 
         botonAccion = new JButton("INICIAR");
+        botonAccion.setBackground(new java.awt.Color(20, 214, 69));
+        botonAccion.setForeground(java.awt.Color.WHITE);
+        botonAccion.setFocusPainted(false);
         botonAccion.addActionListener(e -> manejarClicBoton());
 
         panelApuesta.add(labelIndicador);
@@ -163,6 +175,9 @@ public class VentanaJuego extends JFrame {
         panelRanking.setOpaque(false);
 
         JButton btnRanking = new JButton("Ver Ranking");
+        btnRanking.setBackground(new java.awt.Color(0, 131, 255));
+        btnRanking.setForeground(java.awt.Color.WHITE);
+        btnRanking.setFocusPainted(false);
         btnRanking.setFocusable(false);
         btnRanking.addActionListener(e -> new VentanaRanking().setVisible(true));
 
@@ -172,7 +187,8 @@ public class VentanaJuego extends JFrame {
 
         add(panelSurPrincipal, java.awt.BorderLayout.SOUTH); // Agregado a la ventana principal
     }
-    private void cerrarSesion(){
+
+    private void cerrarSesion() {
         // Guarda el saldo actual en la base de datos por seguridad antes de salir
         datos.dao.JugadorDAO dao = new datos.dao.JugadorDAOImpl();
         dao.actualizarSaldo(jugador.getNombre(), jugador.getSaldo());
@@ -220,10 +236,24 @@ public class VentanaJuego extends JFrame {
     private void manejarClicBoton() {
         if (controlador.getEstado() == ControladorJuego.EstadoJuego.ESPERA || controlador.getEstado() == ControladorJuego.EstadoJuego.CHOQUE) {
             try {
-                double monto = Double.parseDouble(campoApuesta.getText());
+                double monto = Double.parseDouble(campoApuesta.getText().trim());
 
+                // 1. Validar que no sea negativo o cero
+                if (monto <= 0) {
+                    JOptionPane.showMessageDialog(this, "La apuesta debe ser mayor a $0.", "Apuesta Inválida", JOptionPane.ERROR_MESSAGE);
+                    return; // Detiene la ejecución aquí
+                }
+
+                // 2. Validar que tenga saldo suficiente
+                if (monto > jugador.getSaldo()) {
+                    JOptionPane.showMessageDialog(this, "Saldo insuficiente para esta apuesta.", "Sin Fondos", JOptionPane.ERROR_MESSAGE);
+                    return; // Detiene la ejecución aquí
+                }
+
+                // Si pasa las validaciones, intenta iniciar la ronda
                 if (controlador.iniciarRonda(monto)) {
-                    labelSaldo.setText("Saldo: $" + jugador.getSaldo());
+                    // Actualizamos saldo con formato de 2 decimales
+                    labelSaldo.setText("Saldo: $" + String.format("%.2f", jugador.getSaldo()));
                     botonAccion.setText("RETIRAR");
                     labelMultiplicador.setText("1.00x");
                     labelMultiplicador.setForeground(java.awt.Color.GREEN);
@@ -238,11 +268,13 @@ public class VentanaJuego extends JFrame {
                     }
                 }
             } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Por favor, ingresa un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
                 campoApuesta.setText("20");
             }
         } else if (controlador.getEstado() == ControladorJuego.EstadoJuego.VUELO) {
             controlador.evaluarRetiro();
-            labelSaldo.setText("Saldo: $" + jugador.getSaldo());
+            // Actualizamos saldo con formato de 2 decimales
+            labelSaldo.setText("Saldo: $" + String.format("%.2f", jugador.getSaldo()));
             botonAccion.setText("INICIAR");
 
             // Detenemos el temporizador porque ya se retiró con éxito

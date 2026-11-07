@@ -47,7 +47,7 @@ public class ControladorJuego {
         if(estado!=EstadoJuego.VUELO)return;
 
         apuestaActual.resolverComoGanada(multiplicadorEnPantalla);
-        jugadorActual.agregarGanancia(apuestaActual.calcularPremio()); // Paga
+        jugadorActual.agregarGanancia(apuestaActual.calcularPremio(2.50)); // Paga
         estado=EstadoJuego.CHOQUE; // Finaliza ronda
 
         datos.dao.JugadorDAO dao = new datos.dao.JugadorDAOImpl();

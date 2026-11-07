@@ -14,8 +14,9 @@ public class Apuesta {
         this.multiplicadorRetiro=multiplicadorActual;
         this.ganada=true;
     }
-    public double calcularPremio(){
+    public double calcularPremio(double multiplicadorRetiro){
         if (ganada)return montoApostado*multiplicadorRetiro;
         return 0.0; //si no gana el premio es cero
     }
+    public void setGanada(boolean ganada) { this.ganada = ganada; }
 }
