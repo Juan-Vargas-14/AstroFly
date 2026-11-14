@@ -3,26 +3,34 @@ package vista;
 import datos.Jugador;
 import operaciones.ControladorJuego;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+//para music, recordar
+import javax.sound.sampled.Clip;
 //para imagenes *recordar para aprendizaje*
 import java.io.InputStream;
-import javax.imageio.ImageIO;
 
 public class VentanaJuego extends JFrame {
     private ControladorJuego controlador;
     private Jugador jugador;
 
+    private javax.swing.Timer timerAudio;
     private javax.swing.JTextField campoApuesta;
     private JLabel labelMultiplicador;
     private JLabel labelSaldo;
     private JButton botonAccion;
     private javax.swing.Timer temporizador;
+    private VentanaRanking ventanaRankingActual =null;
 
     private Image imagenFondo;
+    private javax.sound.sampled.Clip clipEspera;
+    private javax.sound.sampled.Clip clipVuelo;
+    private javax.sound.sampled.Clip clipRetiro;
+    private javax.sound.sampled.Clip clipChoque;
 
     private javax.swing.JLabel labelAnimacion;
     private javax.swing.ImageIcon gifVuelo;
@@ -34,6 +42,7 @@ public class VentanaJuego extends JFrame {
         this.controlador = controlador;
 
         cargarFondo();
+        inicializarAudios();
 
         setTitle("AstroFly");
         setSize(800, 700);
@@ -64,7 +73,6 @@ public class VentanaJuego extends JFrame {
         inicializarComponentes();
         configurarTemporizador();
     }
-
     private void cargarFondo() {
         try {
             InputStream is = getClass().getResourceAsStream("/fondo.png");
@@ -77,7 +85,32 @@ public class VentanaJuego extends JFrame {
             System.out.println("Error al cargar la imagen: " + e.getMessage());
         }
     }
+    private javax.sound.sampled.Clip cargarClip(String archivo) {
+        try {
+            java.net.URL url = getClass().getResource("/" + archivo);
+            if (url != null) {
+                javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem.getAudioInputStream(url);
+                javax.sound.sampled.Clip clip = javax.sound.sampled.AudioSystem.getClip();
+                clip.open(audioIn);
+                return clip;
+            }
+        } catch (Exception e) {
+            System.out.println("Error al cargar " + archivo + ": " + e.getMessage());
+        }
+        return null;
+    }
 
+    private void inicializarAudios() {
+        clipEspera = cargarClip("audioEspera.wav");
+        clipVuelo = cargarClip("audioVuelo.wav");
+        clipRetiro = cargarClip("audioRetiro.wav");
+        clipChoque=cargarClip("audioChoque.wav");
+
+        // Arranca la música de espera apenas se abre la ventana
+        if (clipEspera != null) {
+            clipEspera.loop(Clip.LOOP_CONTINUOUSLY);
+        }
+    }
     private void inicializarComponentes() {
         // Configuramos el layout principal de la ventana
         setLayout(new java.awt.BorderLayout());
@@ -179,7 +212,16 @@ public class VentanaJuego extends JFrame {
         btnRanking.setForeground(java.awt.Color.WHITE);
         btnRanking.setFocusPainted(false);
         btnRanking.setFocusable(false);
-        btnRanking.addActionListener(e -> new VentanaRanking().setVisible(true));
+        btnRanking.addActionListener(e -> {
+            //si la ventana no existe o fue cerrada,creamos una nueva
+            if(ventanaRankingActual==null ||!ventanaRankingActual.isVisible()){
+                ventanaRankingActual = new VentanaRanking();
+                ventanaRankingActual.setVisible(true);
+            }else {
+                //si ya esta abierta, solo la traemos al frente
+                ventanaRankingActual.toFront();
+            }
+        });
 
         panelRanking.add(btnRanking);
 
@@ -187,20 +229,22 @@ public class VentanaJuego extends JFrame {
 
         add(panelSurPrincipal, java.awt.BorderLayout.SOUTH); // Agregado a la ventana principal
     }
-
     private void cerrarSesion() {
         // Guarda el saldo actual en la base de datos por seguridad antes de salir
         datos.dao.JugadorDAO dao = new datos.dao.JugadorDAOImpl();
         dao.actualizarSaldo(jugador.getNombre(), jugador.getSaldo());
+        if (timerAudio != null) timerAudio.stop();
 
+        if (clipEspera != null) clipEspera.stop();
+        if (clipVuelo != null) clipVuelo.stop();
+        if (clipChoque != null) clipChoque.stop();
+        if (clipRetiro != null) clipRetiro.stop();
         // Abre la ventana de login
         VentanaInicioSesion login = new VentanaInicioSesion();
         login.setVisible(true);
-
         // Cierra la ventana del juego actual
         this.dispose();
     }
-
     private void sumarApuesta(int monto) {
         try {
             int actual = Integer.parseInt(campoApuesta.getText());
@@ -209,7 +253,6 @@ public class VentanaJuego extends JFrame {
             campoApuesta.setText(String.valueOf(monto)); // Si el usuario borró todo o puso letras
         }
     }
-
     private void configurarTemporizador() {
         temporizador = new javax.swing.Timer(70, new ActionListener() {
             @Override
@@ -227,12 +270,21 @@ public class VentanaJuego extends JFrame {
                         if (gifPerdedor != null) {
                             labelAnimacion.setIcon(gifPerdedor);
                         }
+                        if (clipVuelo != null) clipVuelo.stop();
+                        if (clipChoque != null) {
+                            clipChoque.setFramePosition(0);
+                            clipChoque.start();
+                        }
+                        volverAEsperaConRetraso(4000);
+                        if (clipEspera != null) {
+                            clipEspera.setFramePosition(0);
+                            clipEspera.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+                        }
                     }
                 }
             }
         });
     }
-
     private void manejarClicBoton() {
         if (controlador.getEstado() == ControladorJuego.EstadoJuego.ESPERA || controlador.getEstado() == ControladorJuego.EstadoJuego.CHOQUE) {
             try {
@@ -241,13 +293,13 @@ public class VentanaJuego extends JFrame {
                 // 1. Validar que no sea negativo o cero
                 if (monto <= 0) {
                     JOptionPane.showMessageDialog(this, "La apuesta debe ser mayor a $0.", "Apuesta Inválida", JOptionPane.ERROR_MESSAGE);
-                    return; // Detiene la ejecución aquí
+                    return;
                 }
 
                 // 2. Validar que tenga saldo suficiente
                 if (monto > jugador.getSaldo()) {
                     JOptionPane.showMessageDialog(this, "Saldo insuficiente para esta apuesta.", "Sin Fondos", JOptionPane.ERROR_MESSAGE);
-                    return; // Detiene la ejecución aquí
+                    return;
                 }
 
                 // Si pasa las validaciones, intenta iniciar la ronda
@@ -262,7 +314,20 @@ public class VentanaJuego extends JFrame {
                     if (gifVuelo != null) {
                         labelAnimacion.setIcon(gifVuelo);
                     }
-
+                    if (clipEspera != null) clipEspera.stop();
+                    if (clipVuelo != null) {
+                        clipVuelo.setFramePosition(0);
+                        clipVuelo.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+                    }
+                    //si inicio rapido no se cruzan los sonidos
+                    if (timerAudio != null && timerAudio.isRunning()) {
+                        timerAudio.stop();
+                    }
+                    if (clipEspera != null) clipEspera.stop();
+                    if (clipVuelo != null) {
+                        clipVuelo.setFramePosition(0);
+                        clipVuelo.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+                    }
                     if (temporizador != null) {
                         temporizador.start();
                     }
@@ -281,11 +346,31 @@ public class VentanaJuego extends JFrame {
             if (temporizador != null) {
                 temporizador.stop();
             }
+            if (clipVuelo != null) clipVuelo.stop();
+            if (clipRetiro != null) {
+                clipRetiro.setFramePosition(0);
+                clipRetiro.start();
+            }
+            volverAEsperaConRetraso(1500);
 
             // Cambiar al GIF de ganador
             if (gifGanador != null) {
                 labelAnimacion.setIcon(gifGanador);
             }
         }
+    }
+    private void volverAEsperaConRetraso(int milisegundos) {
+        if (timerAudio != null && timerAudio.isRunning()) {
+            timerAudio.stop(); // Cancela cualquier pausa anterior
+        }
+
+        timerAudio = new javax.swing.Timer(milisegundos, e -> {
+            if (clipEspera != null) {
+                clipEspera.setFramePosition(0);
+                clipEspera.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+            }
+        });
+        timerAudio.setRepeats(false);
+        timerAudio.start();
     }
 }
