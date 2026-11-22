@@ -1,38 +1,45 @@
 package datos.dao;
 
 import datos.dto.JugadorDTO;
+import com.zaxxer.hikari.HikariConfig; // mantener una conexion abierta con la BD para no generar lag en el juego
+import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JugadorDAOImpl implements JugadorDAO {
+    private static HikariDataSource dataSource;
+    private static synchronized HikariDataSource getDataSource() {
+        if (dataSource == null) {
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl("jdbc:postgresql://ep-bitter-sunset-b6wbzqvy.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require&prepareThreshold=0");
+            config.setUsername("neondb_owner");
+            config.setPassword("npg_UmEKaJi5n1zw");
+            config.setDriverClassName("org.postgresql.Driver");
+
+            config.setMaximumPoolSize(3);
+            config.setMinimumIdle(1);
+            config.setConnectionTimeout(15000);
+
+            dataSource = new HikariDataSource(config);
+        }
+        return dataSource;
+    }
     private static final String URL = "jdbc:postgresql://ep-bitter-sunset-b6wbzqvy-pooler.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require";
     private static final String USUARIO = "neondb_owner";
     private static final String CONTRA = "npg_UmEKaJi5n1zw";
 
     public JugadorDAOImpl() {
-        crearTablaSiNoExiste();
     }
-
     private Connection conectar() throws SQLException {
-        return DriverManager.getConnection(URL, USUARIO, CONTRA);
-    }
-
-    private void crearTablaSiNoExiste() {
-        String sql = "CREATE TABLE IF NOT EXISTS jugadores ("
-                + "nombre TEXT PRIMARY KEY, "
-                + "saldo DOUBLE PRECISION NOT NULL, "
-                + "contrasena TEXT NOT NULL"
-                + ");";
-        try (Connection conexion = conectar();
-             Statement statement = conexion.createStatement()) {
-            statement.execute(sql);
-        } catch (SQLException e) {
-            System.out.println("Error al crear la tabla: " + e.getMessage());
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            System.out.println("Driver de PostgreSQL no encontrado: " + e.getMessage());
         }
+        return getDataSource().getConnection();
     }
-
     @Override
     public boolean registrarJugador(JugadorDTO jugador) {
         String sql = "INSERT INTO jugadores(nombre, saldo, contrasena) VALUES(?,?,?)";
@@ -48,7 +55,6 @@ public class JugadorDAOImpl implements JugadorDAO {
             return false;
         }
     }
-
     @Override
     public boolean validarInicioSesion(String nombre, String contrasena) {
         String sql = "SELECT * FROM jugadores WHERE nombre = ? AND contrasena = ?";

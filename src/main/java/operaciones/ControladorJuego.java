@@ -13,6 +13,8 @@ public class ControladorJuego {
     private double multiplicadorEnPantalla;
     private double puntoChoqueOculto;
 
+    private final datos.dao.JugadorDAO dao= new datos.dao.JugadorDAOImpl();
+
     public ControladorJuego(Jugador jugador){
         this.jugadorActual=jugador;
         this.motor=new MotorChoque();
@@ -47,12 +49,13 @@ public class ControladorJuego {
         if(estado!=EstadoJuego.VUELO)return;
 
         apuestaActual.resolverComoGanada(multiplicadorEnPantalla);
-        jugadorActual.agregarGanancia(apuestaActual.calcularPremio(multiplicadorEnPantalla)); // Paga
-        estado=EstadoJuego.CHOQUE; // Finaliza ronda
+        jugadorActual.agregarGanancia(apuestaActual.calcularPremio(multiplicadorEnPantalla));
+        estado = EstadoJuego.CHOQUE;
 
-        datos.dao.JugadorDAO dao = new datos.dao.JugadorDAOImpl();
-        //guardar progreso con saldo nuevo
-        dao.actualizarSaldo(jugadorActual.getNombre(), jugadorActual.getSaldo());
+        //guarda en segundo plano sin que genere lag en la ventana
+        String nombreJugador = jugadorActual.getNombre();
+        double saldoNuevo = jugadorActual.getSaldo();
+        new Thread(() -> dao.actualizarSaldo(nombreJugador, saldoNuevo)).start();
     }
     public EstadoJuego getEstado(){return estado;}
     public double getMultiplicadorEnPantalla(){return multiplicadorEnPantalla;}

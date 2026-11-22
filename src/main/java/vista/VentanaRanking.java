@@ -34,7 +34,7 @@ public class VentanaRanking extends JFrame{
         tabla.setFont(new Font("Arial", Font.PLAIN, 14));
         tabla.setRowHeight(25);
 
-        // Obtener datos de SQLite y llenar la tabla
+        // Obtener datos de BD para llenar la lista
         JugadorDAO dao = new JugadorDAOImpl();
         List<JugadorDTO> ranking = dao.obtenerRanking();
 
@@ -47,7 +47,6 @@ public class VentanaRanking extends JFrame{
             });
             posicion++;
         }
-
         // Agregar scroll por si hay muchos datos
         JScrollPane scrollPane = new JScrollPane(tabla);
         add(scrollPane, BorderLayout.CENTER);

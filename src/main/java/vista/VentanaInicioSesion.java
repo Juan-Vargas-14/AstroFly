@@ -26,7 +26,6 @@ public class VentanaInicioSesion extends JFrame {
 
         inicializarComponentes();
     }
-
     private void inicializarComponentes() {
         JPanel panelCentral = new JPanel(new GridLayout(3, 2, 10, 20));
         panelCentral.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -66,24 +65,16 @@ public class VentanaInicioSesion extends JFrame {
             JOptionPane.showMessageDialog(this, "Por favor, completa todos los campos.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-
-        if (jugadorDAO.validarInicioSesion(usuario, contrasena)) {
-            // Obtener datos del jugador desde la BD
-            JugadorDTO dto = jugadorDAO.obtenerJugador(usuario);
-
-            // Instanciar modelo y controlador
+        JugadorDTO dto = jugadorDAO.obtenerJugador(usuario.trim());
+        if (dto != null && dto.getContrasena().equals(contrasena.trim())) {
             Jugador jugador = new Jugador(dto.getNombre(), dto.getSaldo());
-            ControladorJuego controlador = new ControladorJuego(jugador);
-
-            // Abrir ventana de juego y cerrar inicio de sesion
-            VentanaJuego ventanaJuego = new VentanaJuego(jugador, controlador);
-            ventanaJuego.setVisible(true);
+            ControladorJuego controlador = new ControladorJuego(jugador); // Si tu ControladorJuego no recibe parámetros, usa: new ControladorJuego()
+            new VentanaJuego(jugador, controlador).setVisible(true);
             this.dispose();
         } else {
-            JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos.", "Error de Inicio de Sesion", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
         }
     }
-
     private void registrarUsuario() {
         String usuario = campoUsuario.getText().trim();
         String contrasena = new String(campoContrasena.getPassword()).trim();
